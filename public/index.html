@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LegalDoc Risk Rater</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-[#0b1020] via-[#0e1630] to-[#0b1020] text-gray-100 font-sans">
+  <header class="max-w-6xl mx-auto px-4 py-6">
+    <h1 class="text-3xl font-bold mb-1">LegalDoc Risk Rater</h1>
+    <p class="text-gray-400">
+      AU-only (APPs + ACSC Essential Eight + CDSS Exemption). Upload a document and we’ll analyze it.
+    </p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6 pb-12">
+    <!-- Left: uploader -->
+    <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-4 shadow-lg">
+      <h3 class="font-semibold mb-2">Upload</h3>
+      <form id="fileForm" class="space-y-3">
+        <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required
+          class="w-full text-sm text-gray-300 file:mr-4 file:rounded-md file:border-0 file:bg-slate-800 file:text-gray-200 hover:file:bg-slate-700"/>
+        <div class="flex items-center gap-2">
+          <button id="fileBtn" type="submit"
+            class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white">
+            Analyze
+          </button>
+          <span id="fileBusy" class="hidden text-sm text-cyan-300">⏳ analyzing…</span>
+        </div>
+        <div id="fileErr" class="hidden text-red-300 text-sm bg-red-900/40 border border-red-500 rounded-md p-2"></div>
+      </form>
+
+      <p id="docMeta" class="text-gray-400 mt-3 text-sm"></p>
+
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button id="btnCopy" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Copy JSON</button>
+        <button id="btnDownload" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Download JSON</button>
+        <button id="btnClear" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Clear Cache</button>
+      </div>
+    </div>
+
+    <!-- Right: stacked full-width report -->
+    <div class="md:col-span-2 flex flex-col gap-6">
+      <!-- Overall -->
+      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center shadow-lg min-h-[300px]">
+        <div id="gauge"></div>
+        <div id="gaugeLabel" class="mt-2 text-gray-400 text-sm">Overall</div>
+        <div class="mt-1 text-[12px] text-gray-500">Strict wording detection — may understate compliance if phrasing differs</div>
+      </div>
+
+      <!-- Category breakdown (bars) -->
+      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
+        <h3 class="font-semibold mb-4">Category Breakdown</h3>
+        <div class="grid gap-2 text-sm mb-4 md:max-w-[60%]">
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-400"></span> Privacy (APPs)</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> Security (E8)</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-purple-400"></span> Contract fairness</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-400"></span> Vendor sharing</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-pink-400"></span> CDSS exemption</div>
+        </div>
+        <div id="bars" class="space-y-3"></div>
+      </div>
+
+      <!-- Findings -->
+      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
+        <h3 class="font-semibold mb-4">Findings</h3>
+        <div id="findings" class="space-y-3"></div>
+        <p id="findingsEmpty" class="hidden text-gray-500 text-sm">No findings returned.</p>
+      </div>
+
+      <!-- Top actions -->
+      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
+        <h3 class="font-semibold mb-4">Top actions</h3>
+        <div id="plan" class="space-y-3"></div>
+        <p id="planEmpty" class="hidden text-gray-500 text-sm">No remediation items returned.</p>
+      </div>
+
+      <!-- Executive summary (for Gemini) -->
+      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold">Executive Summary (ready for Gemini)</h3>
+          <div class="flex gap-2">
+            <button id="btnGenSummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Regenerate</button>
+            <button id="btnCopySummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Copy</button>
+            <button id="btnDownloadSummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Download .txt</button>
+          </div>
+        </div>
+        <textarea id="execText" class="w-full h-64 p-3 bg-slate-800/60 border border-slate-700 rounded-lg text-sm leading-6"
+          placeholder="Run an analysis first, then this box will contain a Gemini-ready prompt…"></textarea>
+        <p class="text-xs text-gray-500 mt-2">Tip: paste into Gemini and ask it to “rewrite the Privacy Policy and ToS to address these gaps,” or “draft missing clauses.”</p>
+      </div>
+    </div>
+  </main>
+
+<script>
+let lastJson = null;
+
+/* ----------------- helpers ----------------- */
+function $(id){ return document.getElementById(id); }
+function setLoading(on){
+  $("fileBtn").disabled = !!on;
+  $("fileBusy").classList.toggle("hidden", !on);
+}
+function showError(msg){
+  $("fileErr").classList.remove("hidden");
+  $("fileErr").textContent = msg;
+}
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+
+/* ----------------- overall gauge ----------------- */
+function renderGauge(el, score){
+  el.innerHTML='';
+  const size=240, r=92, c=2*Math.PI*r;
+  const col = score>=80?'#22c55e' : score>=50?'#f59e0b' : '#ef4444';
+  const svg = `
+  <svg width="${size}" height="${size}">
+    <defs>
+      <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${col}"/>
+        <stop offset="100%" stop-color="#06b6d4"/>
+      </linearGradient>
+    </defs>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="rgba(255,255,255,.08)" stroke-width="16" fill="none"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="url(#grad)" stroke-linecap="round" stroke-width="16"
+      stroke-dasharray="${(Math.max(0,Math.min(100,score))/100)*c} ${c}" fill="none"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="46" fill="#e5e7eb" font-weight="700">${Math.round(score||0)}</text>
+  </svg>`;
+  el.innerHTML = svg;
+}
+
+/* ----------------- bars & sections ----------------- */
+function barClass(s){return s>=80?'bg-green-500':s>=50?'bg-yellow-500':'bg-red-500'}
+
+function renderBars(scores){
+  const entries=[
+    ['Privacy (APPs)','privacy_app','bg-blue-400'],
+    ['Security (E8)','security_e8','bg-yellow-500'],
+    ['Contract fairness','contract_fairness','bg-purple-400'],
+    ['Vendor sharing','vendor_sharing','bg-green-400'],
+    ['CDSS exemption','cdss_exemption','bg-pink-400'],
+  ];
+  const container = $("bars");
+  container.innerHTML='';
+  for (const [label, key, dot] of entries){
+    const val = Math.max(0, Math.min(100, Number(scores[key]||0)));
+    const row = document.createElement('div');
+    row.className = 'bg-slate-800/60 border border-slate-700 rounded-xl p-3';
+    row.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full ${dot}"></span>
+          <span class="font-medium">${label}</span>
+        </div>
+        <span class="text-sm">${val}</span>
+      </div>
+      <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div class="h-2 ${barClass(val)} rounded-full" style="width:${val}%"></div>
+      </div>`;
+    container.appendChild(row);
+  }
+}
+
+function renderFindings(list){
+  const container = $("findings");
+  container.innerHTML='';
+  $("findingsEmpty").classList.toggle("hidden", !!list.length);
+  list.forEach(f=>{
+    const d=document.createElement('details');
+    d.className='bg-slate-800/60 border border-slate-700 rounded-lg p-3';
+    d.innerHTML=`
+      <summary class="cursor-pointer font-medium text-gray-200">${escapeHtml(f.title||'(untitled)')} • ${escapeHtml(f.severity||'')}</summary>
+      <div class="mt-2 text-sm text-gray-300 space-y-2">
+        ${f.evidence?`<div><strong>Evidence:</strong> ${escapeHtml(f.evidence)}</div>`:''}
+        ${f.impact?`<div><strong>Impact:</strong> ${escapeHtml(f.impact)}</div>`:''}
+        ${f.recommendation?`<div><strong>Recommendation:</strong> ${escapeHtml(f.recommendation)}</div>`:''}
+        ${Array.isArray(f.references)&&f.references.length ? `<div class="text-gray-400">Refs: ${f.references.map(r=>`<code class="bg-slate-700/60 px-1.5 py-0.5 rounded">${escapeHtml(r)}</code>`).join(' ')}</div>`:''}
+      </div>`;
+    container.appendChild(d);
+  });
+}
+
+function renderPlan(items){
+  const container = $("plan");
+  container.innerHTML='';
+  $("planEmpty").classList.toggle("hidden", !!items.length);
+  items.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='bg-slate-800/60 border border-slate-700 rounded-lg p-3';
+    div.innerHTML=`
+      <div class="flex justify-between font-medium">
+        <span>${escapeHtml(p.title||'Remediation')}</span>
+        <span class="text-sm text-gray-400">${escapeHtml(p.severity||'')}</span>
+      </div>
+      <div class="text-sm text-gray-300 mt-1">${escapeHtml(p.recommendation||'')}</div>`;
+    container.appendChild(div);
+  });
+}
+
+/* ----------------- Executive summary generator ----------------- */
+function topFindings(findings, limit=6){
+  const sevRank = { high:0, medium:1, low:2 };
+  return (findings||[])
+    .slice()
+    .sort((a,b)=>(sevRank[a.severity?.toLowerCase()]??3)-(sevRank[b.severity?.toLowerCase()]??3))
+    .slice(0, limit);
+}
+
+function generateExecutiveSummary(j){
+  if(!j) return "Run an analysis first.";
+  const s = j.scores || {};
+  const cats = [
+    ["Privacy (APPs)","privacy_app"],
+    ["Security (E8)","security_e8"],
+    ["Contract fairness","contract_fairness"],
+    ["Vendor sharing","vendor_sharing"],
+    ["CDSS exemption","cdss_exemption"]
+  ];
+
+  const catLines = cats.map(([label,key])=>{
+    const v = Math.round(Number(s[key]||0));
+    let sentiment = v>=80?"strong":v>=60?"reasonable":v>=40?"weak":"at risk";
+    return `- ${label}: ${v}/100 (${sentiment})`;
+  }).join("\n");
+
+  const tf = topFindings(j.findings, 8).map(f=>{
+    const sev = (f.severity||"").toUpperCase();
+    const theme = (f.theme||"").replace(/_/g," ");
+    return `- [${sev}] ${f.title || "(untitled)"} — theme: ${theme}. ${f.recommendation ? "Fix: "+f.recommendation : ""}`;
+  }).join("\n");
+
+  const plan = (j.remediation_plan||[]).slice(0,6).map(p=>{
+    return `- (${p.severity||"medium"}) ${p.title||"Action"}: ${p.recommendation||""}`;
+  }).join("\n");
+
+  const title = j.doc?.title || "Document";
+  const last = j.doc?.last_updated_detected ? ` (last updated ${j.doc.last_updated_detected})` : "";
+
+  return `SYSTEM (context):
+You are an AU-focused compliance assistant. Rewrite or augment the client's legal documents to improve alignment with:
+- Australian Privacy Principles (APPs)
+- ACSC Essential Eight (signals only)
+- TGA CDSS Exemption conditions
+Keep language plain, accurate, and non-alarmist. Do not invent facts.
+
+CLIENT CONTEXT:
+- Document: ${title}${last}
+- Overall score: ${Math.round(Number(s.overall||0))}/100
+
+CATEGORY SCORES:
+${catLines}
+
+TOP FINDINGS TO ADDRESS:
+${tf || "- (no high/medium findings parsed)"}
+
+ACTIONS / CLAUSE STARTERS (draft new/updated clauses):
+${plan || "- (no remediation items parsed)"}
+
+OUTPUT REQUEST:
+1) Draft concrete clauses/sections to add or replace in the client's Privacy Policy and/or Terms, referencing APPs/E8/CDSS exemption where relevant.
+2) Keep it AU jurisdiction-aware and self-contained.
+3) Include brief rationale lines after each clause (// why).
+4) Provide a short checklist we can paste back into the app to verify coverage.`;
+}
+
+/* ----------------- show + cache ----------------- */
+function showReport(j){
+  lastJson = j;
+  try { localStorage.setItem("riskReport", JSON.stringify(j)); } catch(e) {}
+
+  const m=j.doc||{};
+  $("docMeta").textContent = `${m.title||'Document'} • AU-only ${m.last_updated_detected?('• last updated: '+m.last_updated_detected):''}`;
+
+  const s=j.scores||{};
+  renderGauge($("gauge"), Number(s.overall||0));
+  renderBars(s);
+  renderFindings(j.findings||[]);
+  renderPlan(j.remediation_plan||[]);
+
+  // Executive summary
+  $("execText").value = generateExecutiveSummary(j);
+}
+
+/* ----------------- upload flow ----------------- */
+$("fileForm").addEventListener('submit', async (e)=>{
+  e.preventDefault(); $("fileErr").classList.add("hidden"); setLoading(true);
+  try{
+    const fd=new FormData($("fileForm"));
+    const r=await fetch('/api/analyze-file',{method:'POST',body:fd});
+    const j=await r.json().catch(()=>({error:'Invalid JSON from server'}));
+    if(!r.ok){ showError(j.error||(`${r.status} ${r.statusText}`)); return; }
+    showReport(j);
+  }catch(err){ showError(String(err)); }
+  finally{ setLoading(false); }
+});
+
+/* ----------------- copy/download/clear ----------------- */
+$("btnCopy").addEventListener('click',()=>{
+  if(!lastJson) return; navigator.clipboard.writeText(JSON.stringify(lastJson,null,2));
+});
+$("btnDownload").addEventListener('click',()=>{
+  if(!lastJson) return;
+  const blob=new Blob([JSON.stringify(lastJson,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='risk-report.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+$("btnClear").addEventListener('click',()=>{
+  try { localStorage.removeItem("riskReport"); } catch(e) {}
+  lastJson = null;
+  $("docMeta").textContent = '';
+  $("gauge").innerHTML = '';
+  $("bars").innerHTML = '';
+  $("findings").innerHTML = '';
+  $("plan").innerHTML = '';
+  $("execText").value = '';
+  $("findingsEmpty").classList.add("hidden");
+  $("planEmpty").classList.add("hidden");
+});
+
+/* ----------------- exec summary controls ----------------- */
+$("btnGenSummary").addEventListener('click', ()=>{
+  if(!lastJson) return;
+  $("execText").value = generateExecutiveSummary(lastJson);
+});
+$("btnCopySummary").addEventListener('click', ()=>{
+  if(!$("execText").value) return;
+  navigator.clipboard.writeText($("execText").value);
+});
+$("btnDownloadSummary").addEventListener('click', ()=>{
+  if(!$("execText").value) return;
+  const blob=new Blob([$("execText").value],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='executive-summary.txt'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+
+/* ----------------- load cached on boot ----------------- */
+(function restoreCache(){
+  const cached = localStorage.getItem("riskReport");
+  if (!cached) return;
+  try { showReport(JSON.parse(cached)); } catch(e) { console.warn("Invalid cached report", e); }
+})();
+</script>
+</body>
+</html>
