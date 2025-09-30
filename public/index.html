@@ -4,55 +4,67 @@
   <meta charset="utf-8" />
   <title>LegalDoc Risk Rater</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Customizing the font family */
+    body { font-family: 'Inter', sans-serif; }
+    /* Hide scrollbar for aesthetics */
+    ::-webkit-scrollbar { display: none; }
+    /* Custom style for the overall score number in the gauge */
+    #gauge text {
+      transition: fill 0.5s;
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-[#0b1020] via-[#0e1630] to-[#0b1020] text-gray-100 font-sans">
-  <header class="max-w-6xl mx-auto px-4 py-6">
-    <h1 class="text-3xl font-bold mb-1">LegalDoc Risk Rater</h1>
-    <p class="text-gray-400">
-      AU-only (APPs + ACSC Essential Eight + CDSS Exemption). Upload a document and we’ll analyze it.
+<body class="bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 text-gray-100">
+  <header class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-4xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-sky-500">
+      LegalDoc Risk Rater
+    </h1>
+    <p class="text-slate-400">
+      AU-only compliance assessment: Australian Privacy Principles, ACSC Essential Eight, and TGA CDSS Exemption signals.
     </p>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6 pb-12">
-    <!-- Left: uploader -->
-    <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-4 shadow-lg">
-      <h3 class="font-semibold mb-2">Upload</h3>
-      <form id="fileForm" class="space-y-3">
+  <main class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 pb-16">
+    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-2xl h-fit sticky top-8">
+      <h3 class="text-xl font-semibold mb-4 text-cyan-400">Document Upload</h3>
+      <form id="fileForm" class="space-y-4">
         <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required
-          class="w-full text-sm text-gray-300 file:mr-4 file:rounded-md file:border-0 file:bg-slate-800 file:text-gray-200 hover:file:bg-slate-700"/>
-        <div class="flex items-center gap-2">
+          class="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-slate-700 file:text-white file:font-medium hover:file:bg-slate-600 cursor-pointer transition-colors duration-200"/>
+        <div class="flex items-center gap-4 pt-2">
           <button id="fileBtn" type="submit"
-            class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white">
-            Analyze
+            class="flex-shrink-0 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 focus:ring-4 focus:ring-cyan-500/50 font-semibold text-white transition-colors duration-200 shadow-lg hover:shadow-cyan-500/40">
+            Analyze Document
           </button>
-          <span id="fileBusy" class="hidden text-sm text-cyan-300">⏳ analyzing…</span>
+          <span id="fileBusy" class="hidden text-sm text-cyan-300 font-medium flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            Analyzing…
+          </span>
         </div>
-        <div id="fileErr" class="hidden text-red-300 text-sm bg-red-900/40 border border-red-500 rounded-md p-2"></div>
+        <div id="fileErr" class="hidden text-red-300 text-sm bg-red-900/40 border border-red-700 rounded-lg p-3"></div>
       </form>
 
-      <p id="docMeta" class="text-gray-400 mt-3 text-sm"></p>
+      <p id="docMeta" class="text-slate-400 mt-4 text-sm border-t border-slate-700 pt-4"></p>
 
-      <div class="flex flex-wrap gap-2 mt-3">
-        <button id="btnCopy" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Copy JSON</button>
-        <button id="btnDownload" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Download JSON</button>
-        <button id="btnClear" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Clear Cache</button>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button id="btnCopy" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Copy JSON</button>
+        <button id="btnDownload" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Download JSON</button>
+        <button id="btnClear" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Clear Cache</button>
       </div>
     </div>
 
-    <!-- Right: stacked full-width report -->
-    <div class="md:col-span-2 flex flex-col gap-6">
-      <!-- Overall -->
-      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center shadow-lg min-h-[300px]">
+    <div class="md:col-span-2 flex flex-col gap-8">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center shadow-cyan-900/40 min-h-[300px]">
         <div id="gauge"></div>
-        <div id="gaugeLabel" class="mt-2 text-gray-400 text-sm">Overall</div>
-        <div class="mt-1 text-[12px] text-gray-500">Strict wording detection — may understate compliance if phrasing differs</div>
+        <div id="gaugeLabel" class="mt-4 text-slate-300 text-lg font-medium">Overall Risk Score</div>
+        <div class="mt-2 text-xs text-slate-500 text-center">Score reflects detected wording/signals. May understate compliance if phrasing differs.</div>
       </div>
 
-      <!-- Category breakdown (bars) -->
-      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
-        <h3 class="font-semibold mb-4">Category Breakdown</h3>
-        <div class="grid gap-2 text-sm mb-4 md:max-w-[60%]">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+        <h3 class="text-xl font-semibold mb-4 text-slate-200">Category Breakdown</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm mb-6">
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-400"></span> Privacy (APPs)</div>
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> Security (E8)</div>
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-purple-400"></span> Contract fairness</div>
@@ -62,33 +74,30 @@
         <div id="bars" class="space-y-3"></div>
       </div>
 
-      <!-- Findings -->
-      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
-        <h3 class="font-semibold mb-4">Findings</h3>
-        <div id="findings" class="space-y-3"></div>
-        <p id="findingsEmpty" class="hidden text-gray-500 text-sm">No findings returned.</p>
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+        <h3 class="text-xl font-semibold mb-4 text-slate-200">Findings</h3>
+        <div id="findings" class="space-y-4"></div>
+        <p id="findingsEmpty" class="text-slate-500 text-sm p-4 hidden">No findings returned. This might mean the document is fully compliant based on current analysis logic, or the text extraction failed.</p>
       </div>
 
-      <!-- Top actions -->
-      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
-        <h3 class="font-semibold mb-4">Top actions</h3>
-        <div id="plan" class="space-y-3"></div>
-        <p id="planEmpty" class="hidden text-gray-500 text-sm">No remediation items returned.</p>
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+        <h3 class="text-xl font-semibold mb-4 text-slate-200">Top Remediation Actions</h3>
+        <div id="plan" class="space-y-4"></div>
+        <p id="planEmpty" class="text-slate-500 text-sm p-4 hidden">No remediation items returned. Great work!</p>
       </div>
 
-      <!-- Executive summary (for Gemini) -->
-      <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-6 shadow-lg">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold">Executive Summary (ready for Gemini)</h3>
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h3 class="text-xl font-semibold text-slate-200">Executive Summary (Gemini-Ready Prompt)</h3>
           <div class="flex gap-2">
-            <button id="btnGenSummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Regenerate</button>
-            <button id="btnCopySummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Copy</button>
-            <button id="btnDownloadSummary" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm">Download .txt</button>
+            <button id="btnGenSummary" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Regenerate</button>
+            <button id="btnCopySummary" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Copy</button>
+            <button id="btnDownloadSummary" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 text-sm text-slate-200 transition-colors">Download .txt</button>
           </div>
         </div>
-        <textarea id="execText" class="w-full h-64 p-3 bg-slate-800/60 border border-slate-700 rounded-lg text-sm leading-6"
+        <textarea id="execText" class="w-full h-64 p-4 bg-slate-900 border border-slate-700 rounded-lg text-sm leading-6 font-mono text-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all duration-200"
           placeholder="Run an analysis first, then this box will contain a Gemini-ready prompt…"></textarea>
-        <p class="text-xs text-gray-500 mt-2">Tip: paste into Gemini and ask it to “rewrite the Privacy Policy and ToS to address these gaps,” or “draft missing clauses.”</p>
+        <p class="text-xs text-slate-500 mt-2">Tip: paste this content into Gemini and ask it to “rewrite the Privacy Policy and ToS to address these gaps,” or “draft missing clauses.”</p>
       </div>
     </div>
   </main>
@@ -101,36 +110,55 @@ function $(id){ return document.getElementById(id); }
 function setLoading(on){
   $("fileBtn").disabled = !!on;
   $("fileBusy").classList.toggle("hidden", !on);
+  $("fileBtn").classList.toggle("hidden", !!on);
 }
 function showError(msg){
   $("fileErr").classList.remove("hidden");
   $("fileErr").textContent = msg;
 }
-function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function severityClass(s) {
+  const sev = s?.toLowerCase();
+  if (sev === 'high') return 'text-red-400 font-bold';
+  if (sev === 'medium') return 'text-yellow-400 font-semibold';
+  if (sev === 'low') return 'text-green-400';
+  return 'text-slate-400';
+}
 
 /* ----------------- overall gauge ----------------- */
 function renderGauge(el, score){
   el.innerHTML='';
   const size=240, r=92, c=2*Math.PI*r;
-  const col = score>=80?'#22c55e' : score>=50?'#f59e0b' : '#ef4444';
+  // Use more vibrant colors
+  let colStart = '#16a34a'; // green-600
+  let colEnd = '#22d3ee'; // cyan-400
+  if (score < 50) {
+    colStart = '#dc2626'; // red-600
+    colEnd = '#f87171'; // red-400
+  } else if (score < 80) {
+    colStart = '#d97706'; // amber-600
+    colEnd = '#facc15'; // yellow-400
+  }
+
   const svg = `
   <svg width="${size}" height="${size}">
     <defs>
       <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="${col}"/>
-        <stop offset="100%" stop-color="#06b6d4"/>
+        <stop offset="0%" stop-color="${colStart}"/>
+        <stop offset="100%" stop-color="${colEnd}"/>
       </linearGradient>
     </defs>
     <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="rgba(255,255,255,.08)" stroke-width="16" fill="none"/>
     <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="url(#grad)" stroke-linecap="round" stroke-width="16"
-      stroke-dasharray="${(Math.max(0,Math.min(100,score))/100)*c} ${c}" fill="none"/>
-    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="46" fill="#e5e7eb" font-weight="700">${Math.round(score||0)}</text>
+      stroke-dasharray="${(Math.max(0,Math.min(100,score))/100)*c} ${c}" fill="none"
+      style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 1s ease-out;"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="52" fill="url(#grad)" font-weight="800">${Math.round(score||0)}</text>
   </svg>`;
   el.innerHTML = svg;
 }
 
 /* ----------------- bars & sections ----------------- */
-function barClass(s){return s>=80?'bg-green-500':s>=50?'bg-yellow-500':'bg-red-500'}
+function barClass(s){return s>=80?'bg-green-400':s>=50?'bg-yellow-400':'bg-red-500'}
 
 function renderBars(scores){
   const entries=[
@@ -145,17 +173,17 @@ function renderBars(scores){
   for (const [label, key, dot] of entries){
     const val = Math.max(0, Math.min(100, Number(scores[key]||0)));
     const row = document.createElement('div');
-    row.className = 'bg-slate-800/60 border border-slate-700 rounded-xl p-3';
+    row.className = 'bg-slate-700/50 border border-slate-700 rounded-xl p-3 hover:bg-slate-700 transition-colors duration-150';
     row.innerHTML = `
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full ${dot}"></span>
-          <span class="font-medium">${label}</span>
+        <div class="flex items-center gap-3">
+          <span class="w-3 h-3 rounded-full ${dot}"></span>
+          <span class="font-medium text-slate-200">${label}</span>
         </div>
-        <span class="text-sm">${val}</span>
+        <span class="text-lg font-semibold ${barClass(val).replace('bg-','text-')}">${val}</span>
       </div>
       <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
-        <div class="h-2 ${barClass(val)} rounded-full" style="width:${val}%"></div>
+        <div class="h-2 ${barClass(val)} rounded-full transition-all duration-500" style="width:${val}%"></div>
       </div>`;
     container.appendChild(row);
   }
@@ -167,14 +195,17 @@ function renderFindings(list){
   $("findingsEmpty").classList.toggle("hidden", !!list.length);
   list.forEach(f=>{
     const d=document.createElement('details');
-    d.className='bg-slate-800/60 border border-slate-700 rounded-lg p-3';
+    d.className='bg-slate-700/50 border border-slate-700 rounded-xl p-4 transition-all duration-200';
     d.innerHTML=`
-      <summary class="cursor-pointer font-medium text-gray-200">${escapeHtml(f.title||'(untitled)')} • ${escapeHtml(f.severity||'')}</summary>
-      <div class="mt-2 text-sm text-gray-300 space-y-2">
-        ${f.evidence?`<div><strong>Evidence:</strong> ${escapeHtml(f.evidence)}</div>`:''}
-        ${f.impact?`<div><strong>Impact:</strong> ${escapeHtml(f.impact)}</div>`:''}
-        ${f.recommendation?`<div><strong>Recommendation:</strong> ${escapeHtml(f.recommendation)}</div>`:''}
-        ${Array.isArray(f.references)&&f.references.length ? `<div class="text-gray-400">Refs: ${f.references.map(r=>`<code class="bg-slate-700/60 px-1.5 py-0.5 rounded">${escapeHtml(r)}</code>`).join(' ')}</div>`:''}
+      <summary class="cursor-pointer flex items-center justify-between font-medium text-slate-100 hover:text-cyan-400 transition-colors duration-150">
+        <span>${escapeHtml(f.title||'(untitled)')}</span>
+        <span class="${severityClass(f.severity)} text-sm">${escapeHtml(f.severity||'')}</span>
+      </summary>
+      <div class="mt-3 text-sm text-slate-300 space-y-3 border-t border-slate-700 pt-3">
+        ${f.evidence?`<div><strong>Evidence:</strong> <span class="text-slate-400">${escapeHtml(f.evidence)}</span></div>`:''}
+        ${f.impact?`<div><strong>Impact:</strong> <span class="text-slate-400">${escapeHtml(f.impact)}</span></div>`:''}
+        ${f.recommendation?`<div><strong>Recommendation:</strong> <span class="text-cyan-400 font-normal">${escapeHtml(f.recommendation)}</span></div>`:''}
+        ${Array.isArray(f.references)&&f.references.length ? `<div class="text-slate-400">Refs: ${f.references.map(r=>`<code class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">${escapeHtml(r)}</code>`).join(' ')}</div>`:''}
       </div>`;
     container.appendChild(d);
   });
@@ -186,13 +217,13 @@ function renderPlan(items){
   $("planEmpty").classList.toggle("hidden", !!items.length);
   items.forEach(p=>{
     const div=document.createElement('div');
-    div.className='bg-slate-800/60 border border-slate-700 rounded-lg p-3';
+    div.className='bg-slate-700/50 border border-slate-700 rounded-xl p-4';
     div.innerHTML=`
       <div class="flex justify-between font-medium">
-        <span>${escapeHtml(p.title||'Remediation')}</span>
-        <span class="text-sm text-gray-400">${escapeHtml(p.severity||'')}</span>
+        <span class="text-slate-200">${escapeHtml(p.title||'Remediation')}</span>
+        <span class="text-sm ${severityClass(p.severity)}">${escapeHtml(p.severity||'')}</span>
       </div>
-      <div class="text-sm text-gray-300 mt-1">${escapeHtml(p.recommendation||'')}</div>`;
+      <div class="text-sm text-slate-400 mt-2">${escapeHtml(p.recommendation||'')}</div>`;
     container.appendChild(div);
   });
 }
@@ -315,6 +346,8 @@ $("btnClear").addEventListener('click',()=>{
   $("execText").value = '';
   $("findingsEmpty").classList.add("hidden");
   $("planEmpty").classList.add("hidden");
+  // Also hide the primary button and show the analysis button if it was hidden
+  setLoading(false);
 });
 
 /* ----------------- exec summary controls ----------------- */
@@ -332,6 +365,30 @@ $("btnDownloadSummary").addEventListener('click', ()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='executive-summary.txt'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
+
+function renderFindings(list){
+  const container = $("findings");
+  container.innerHTML='';
+  $("findingsEmpty").classList.toggle("hidden", !!list.length);
+  list.forEach(f=>{
+    const d=document.createElement('details');
+    d.className='bg-slate-700/50 border border-slate-700 rounded-xl p-4 transition-all duration-200';
+    d.innerHTML=`
+      <summary class="cursor-pointer flex items-center justify-between font-medium text-slate-100 hover:text-cyan-400 transition-colors duration-150">
+        <span>${escapeHtml(f.title||'(untitled)')}</span>
+        <span class="${severityClass(f.severity)} text-sm">${escapeHtml(f.severity||'')}</span>
+      </summary>
+      <div class="mt-3 text-sm text-slate-300 space-y-3 border-t border-slate-700 pt-3">
+        ${f.evidence?`<div><strong>Evidence:</strong> <span class="text-slate-400">
+            ${escapeHtml(f.evidence).replace(/(\[LINE\s\d+\])/g, '<code class="text-pink-400 font-mono text-xs px-1.5 py-0.5 rounded bg-slate-800/80">$1</code>')}
+        </span></div>`:''}
+        ${f.impact?`<div><strong>Impact:</strong> <span class="text-slate-400">${escapeHtml(f.impact)}</span></div>`:''}
+        ${f.recommendation?`<div><strong>Recommendation:</strong> <span class="text-cyan-400 font-normal">${escapeHtml(f.recommendation)}</span></div>`:''}
+        ${Array.isArray(f.references)&&f.references.length ? `<div class="text-slate-400">Refs: ${f.references.map(r=>`<code class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">${escapeHtml(r)}</code>`).join(' ')}</div>`:''}
+      </div>`;
+    container.appendChild(d);
+  });
+}
 
 /* ----------------- load cached on boot ----------------- */
 (function restoreCache(){

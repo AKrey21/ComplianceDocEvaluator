@@ -14,7 +14,7 @@ Return ONLY a JSON array of findings. Each finding:
 Guidance:
 - theme ∈ {"privacy_app","security_e8","contract_fairness","vendor_sharing","cdss_exemption"}
 - If a control/notice is MISSING or NOT DISCLOSED, still create a finding (status="undisclosed", severity="medium", evidence="not found")
-- Cite exact lines in 'evidence' when available
+- Cite exact lines in 'evidence' using the format: [LINE XXX] <snippet> when available. The line numbers are prepended to each line in the document chunk for easy RAG-like retrieval and accurate citation.
 - Keep recommendations AU-ready and actionable; do not include owners or ETAs
 - Prefer 6–15 total findings for typical policies
 `;
@@ -22,6 +22,7 @@ Guidance:
 /* ---------------- Public entry ---------------- */
 export async function analyzeText(rawText) {
   const { maxTokensPerChunk, overlapChars } = config;
+  // NOTE: The implementation of chunkByChar has been updated to include line numbers for RAG-like citation.
   const chunks = chunkByChar(rawText, maxTokensPerChunk, overlapChars);
 
   let findings = [];
@@ -312,12 +313,19 @@ function mk(theme, title, status, severity, evidence, impact, recommendation, re
   };
 }
 
-function chunkByChar(text, size, overlap) {
+// MODIFIED: This function now implements RAG-like indexing/grounding by prepending line numbers.
+function chunkByChar(rawText, size, overlap) {
+  // 1. Prepend line numbers to the text (RAG-like indexing/grounding)
+  const lines = rawText.split('\n');
+  const indexedText = lines.map((line, index) => `[LINE ${index + 1}] ${line}`).join('\n');
+
+  // 2. Perform the character-based chunking with overlap on the indexed text
   const out = [];
   let i = 0;
   const step = Math.max(1, size - overlap);
-  while (i < (text?.length || 0)) { out.push(text.slice(i, i + size)); i += step; }
-  return out.length ? out : [text || ""];
+  while (i < (indexedText?.length || 0)) { out.push(indexedText.slice(i, i + size)); i += step; }
+  
+  return out.length ? out : [indexedText || ""];
 }
 
 function dedupeRecommendations(findings) {
